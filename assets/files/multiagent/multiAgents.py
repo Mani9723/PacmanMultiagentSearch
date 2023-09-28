@@ -66,29 +66,28 @@ class ReflexAgent(Agent):
         Print out these variables to see what you're getting, then combine them
         to create a masterful evaluation function.
         """
-        # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
         newFood = successorGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
-        "*** YOUR CODE HERE ***"
 
-        score = 0
-        ghostPos = newGhostStates[0].configuration.getPosition()
-        closestGhost = util.manhattanDistance(newPos,ghostPos)
+        score = successorGameState.getScore()
 
-        if closestGhost > 0:
-            score -= 10/closestGhost
+        foodDistances = []
+        for food in newFood.asList():
+                foodDistances.append(manhattanDistance(newPos,food))
 
-        foodDistances = [util.manhattanDistance(newPos,food) for food in newFood.asList()]
+        if len(foodDistances):
+            closestFoodPellet = min(foodDistances)
+            score += 10/closestFoodPellet
+            score -= len(newFood.asList())*10 + 10 if newPos in newFood.asList() else 0
 
-        if len(foodDistances) == 0:
-            return successorGameState.getScore()
+        ghostDistance = manhattanDistance(newPos,newGhostStates[0].configuration.getPosition())
 
-        closestFood = min(foodDistances)
-        score += 10/closestFood
+        if ghostDistance <= 4:
+            score -= float("inf")
 
-        return successorGameState.getScore() +  score
+        return score
 
 def scoreEvaluationFunction(currentGameState):
     """
@@ -126,6 +125,8 @@ class MinimaxAgent(MultiAgentSearchAgent):
     """
 
     def getAction(self, gameState):
+
+
         """
         Returns the minimax action from the current gameState using self.depth
         and self.evaluationFunction.
@@ -149,7 +150,21 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minimax(gameState, depth, agent):
+            if agent == gameState.getNumAgents():
+                return self.evaluationFunction(gameState) if depth == self.depth else minimax(gameState, depth + 1, 0)
+            else:
+                successor = []
+                legalActions = gameState.getLegalActions(agent)
+                if len(legalActions):
+                    for legalAction in legalActions:
+                        successor.append(minimax(gameState.generateSuccessor(agent, legalAction), depth, agent + 1))
+                else:
+                    return self.evaluationFunction(gameState)
+            return min(successor) if agent else max(successor)
+
+        legalActions = gameState.getLegalActions(agentIndex=0)
+        return max(legalActions, key=lambda X: minimax(gameState.generateSuccessor(0, X), 1, 1))
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
