@@ -10,7 +10,7 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
-
+import math
 
 from util import manhattanDistance
 from game import Directions
@@ -150,9 +150,12 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
+        def isTerminal(gameState, depth):
+            return depth == self.depth or gameState.isWin() or gameState.isLose()
+
         def minimax(gameState, depth, agent):
             if agent == gameState.getNumAgents():
-                return self.evaluationFunction(gameState) if depth == self.depth else minimax(gameState, depth + 1, 0)
+                return self.evaluationFunction(gameState) if isTerminal(gameState, depth) else minimax(gameState,depth+1,0)
             else:
                 successor = []
                 legalActions = gameState.getLegalActions(agent)
@@ -176,7 +179,59 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def isTerminal(gameState, depth):
+            return depth == self.depth or gameState.isWin() or gameState.isLose()
+        def maxValue(gameState, alpha, beta, agentIndex, depth):
+            if isTerminal(gameState,depth):
+                return self.evaluationFunction(gameState)
+
+            actions = gameState.getLegalActions(agentIndex)
+            v = float('-inf')
+            for action in actions:
+                childState = gameState.generateSuccessor(agentIndex, action)
+                childMinValue = minValue(childState, alpha, beta, 1, depth)
+                v = childMinValue if childMinValue > v else v
+                if v > beta:
+                    return v
+                alpha = max(alpha, v)
+            return v
+
+        def minValue(gameState, alpha, beta, agentIndex, depth):
+            if isTerminal(gameState, depth):
+                return self.evaluationFunction(gameState)
+
+            actions = gameState.getLegalActions(agentIndex)
+            v = float('inf')
+
+            for action in actions:
+                childState = gameState.generateSuccessor(agentIndex, action)
+                childMaxValue = maxValue(childState, alpha, beta, 0, depth + 1) \
+                    if agentIndex % (gameState.getNumAgents() - 1) == 0 \
+                    else minValue(childState, alpha, beta, agentIndex + 1, depth)
+                v = childMaxValue if childMaxValue < v else v
+                if v < alpha:
+                    return v
+                beta = min(beta, v)
+            return v
+
+        def value():
+            beta = float('inf')
+            alpha = float('-inf')
+            actions = gameState.getLegalActions(0)
+            maxVal = -99999999
+            actionsMap = {}
+            for action in actions:
+                childState = gameState.generateSuccessor(0, action)
+                minScore = minValue(childState, alpha, beta, 1, 0)
+                maxVal = max(maxVal, minScore)
+                actionsMap[minScore] = action
+                if minScore > beta:
+                    return actionsMap[maxVal]
+                alpha = max(alpha, maxVal)
+            return actionsMap[alpha]
+
+        return value()
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
